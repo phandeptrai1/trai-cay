@@ -1,5 +1,5 @@
 --====================================
--- BLOX FRUITS TRACKER | ATLANTIS STYLE
+-- BLOX FRUITS TRACKER | TOOL FIX
 --====================================
 
 --=========== CONFIG ==================
@@ -62,22 +62,53 @@ local function getPlayerData()
     }
 end
 
---=========== INVENTORY =================
-local function getInventory()
-    local inv = LP.Data:FindFirstChild("Inventory")
-    local heart, scale, mythic, leg = 0, 0, 0, 0
+--=========== TOOL FIX: TIM LEVI STACK ============
+local function getLeviHeartCount()
+    local total = 0
 
-    if inv then
-        for _,i in pairs(inv:GetChildren()) do
-            local n = i.Name:lower()
-            local v = i.Value or 1
-            if n:find("leviathan heart") then heart += v end
-            if n:find("leviathan scale") then scale += v end
-            if n:find("mythic scroll") then mythic += v end
-            if n:find("legendary scroll") then leg += v end
+    local function check(container)
+        for _,tool in pairs(container:GetChildren()) do
+            if tool:IsA("Tool") then
+                local name = tool.Name:lower()
+                if name:find("levi") and name:find("heart") then
+                    -- đọc stack thật
+                    for _,v in pairs(tool:GetChildren()) do
+                        if v:IsA("IntValue") or v:IsA("NumberValue") then
+                            total += v.Value
+                            return
+                        end
+                    end
+                    -- fallback (hiếm)
+                    total += 1
+                end
+            end
         end
     end
-    return heart, scale, mythic, leg
+
+    if LP:FindFirstChild("Backpack") then
+        check(LP.Backpack)
+    end
+
+    if LP.Character then
+        check(LP.Character)
+    end
+
+    return total
+end
+
+--=========== SCROLL CHECK =================
+local function getScrolls()
+    local mythic, legendary = 0, 0
+    local inv = LP.Data:FindFirstChild("Inventory")
+    if inv then
+        for _,item in pairs(inv:GetChildren()) do
+            local name = item.Name:lower()
+            local v = item.Value or 1
+            if name:find("mythic scroll") then mythic += v end
+            if name:find("legendary scroll") then legendary += v end
+        end
+    end
+    return mythic, legendary
 end
 
 --=========== BOSS CHECK =================
@@ -96,7 +127,8 @@ local function sendWebhook()
     if not requestFunc then return end
 
     local p = getPlayerData()
-    local h,s,m,l = getInventory()
+    local heart = getLeviHeartCount()
+    local mythic, legendary = getScrolls()
 
     local msg =
         "🛠️ **THEO DÕI BLOX FRUITS**\n" ..
@@ -109,11 +141,10 @@ local function sendWebhook()
         "⭐ Level: "..p.Level.."\n" ..
         "💵 Beli: $"..p.Beli.."\n" ..
         "🟣 Frag: "..p.Frag.."\n\n" ..
-        "📦 **Leviathan**\n" ..
-        "❤️ Tim: x"..h.."\n" ..
-        "🧬 Vảy: x"..s.."\n" ..
-        "📜 Mythic: x"..m.."\n" ..
-        "📘 Legendary: x"..l.."\n\n" ..
+        "📦 **Kho Đồ**\n" ..
+        "❤️ Tim Levi: x"..heart.."\n" ..
+        "📜 Mythic Scroll: x"..mythic.."\n" ..
+        "📘 Legendary Scroll: x"..legendary.."\n\n" ..
         "👹 **Boss:** "..getBosses().."\n" ..
         "⏱️ Update: "..os.date("%H:%M:%S")
 
@@ -153,4 +184,4 @@ game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(func
     end
 end)
 
-print("✅ Blox Fruits Tracker Loaded | Send now + every 3 minutes")
+print("✅ Tracker Loaded | Tool Stack Fix OK")
